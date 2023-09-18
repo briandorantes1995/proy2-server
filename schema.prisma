@@ -1,0 +1,50 @@
+// database
+datasource db {
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
+  relationMode = "prisma"
+}
+
+// generator
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = 5
+}
+
+// Modelos
+model Usuario {
+  id             Int           @id @default(autoincrement())
+  nombre         String
+  email          String        @unique
+  password       String
+  hospedado      Boolean       @default(false)
+  cuarto         habitaciones? @relation(fields: [habitacionesId], references: [id])
+  habitacionesId Int?          @unique
+
+  @@index([habitacionesId])
+}
+
+model Empleado {
+  id       Int     @id @default(autoincrement())
+  nombre   String?
+  email    String  @unique
+  password String
+  rol      String
+}
+
+model tipohabitacion {
+  id           Int            @id @default(autoincrement())
+  tipo         String?        @unique
+  descripcion  String
+  habitaciones habitaciones[]
+}
+
+model habitaciones {
+  id               Int            @id @default(autoincrement())
+  Usuario          Usuario?
+  tipo             tipohabitacion @relation(fields: [tipohabitacionId], references: [id])
+  tipohabitacionId Int
+  costo            Int
+
+  @@index([tipohabitacionId])
+}
