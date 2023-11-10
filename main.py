@@ -1,7 +1,7 @@
 import os
 import jwt
 from flask import Flask, request, Response, make_response, jsonify
-from prisma import Prisma
+from app import Prisma
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
