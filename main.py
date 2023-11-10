@@ -4,6 +4,7 @@ from flask import Flask, request, Response, make_response, jsonify
 from flask_cors import CORS
 from prisma import Prisma
 from dotenv import load_dotenv
+from waitress import serve
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 
@@ -212,7 +213,7 @@ async def mostrar_habitaciones():
 
 
 if __name__ == '__main__':
-    app.run()
+    serve(app, host='0.0.0.0', port=8080)
 
 
 
