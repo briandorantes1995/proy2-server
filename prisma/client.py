@@ -48,7 +48,7 @@ from types import TracebackType
 from pydantic import BaseModel
 
 from . import types, models, errors, actions
-from .types import DatasourceOverride, HttpConfig
+from .types import DatasourceOverride, HttpConfig, MetricsFormat
 from ._types import BaseModelT, PrismaMethod
 from .bases import _PrismaModel
 from .engine import AbstractEngine, QueryEngine, TransactionId
@@ -57,6 +57,7 @@ from .generator.models import EngineType, OptionalValueFromEnvVar, BinaryPaths
 from ._compat import removeprefix, model_parse
 from ._constants import DEFAULT_CONNECT_TIMEOUT, DEFAULT_TX_MAX_WAIT, DEFAULT_TX_TIMEOUT
 from ._raw_query import deserialize_raw_results
+from ._metrics import Metrics
 
 __all__ = (
     'ENGINE_TYPE',
@@ -75,7 +76,7 @@ log: logging.Logger = logging.getLogger(__name__)
 SCHEMA_PATH = Path('/Users/briandorantes/Desktop/proy2-server/prisma/schema.prisma')
 PACKAGED_SCHEMA_PATH = Path(__file__).parent.joinpath('schema.prisma')
 ENGINE_TYPE: EngineType = EngineType.binary
-BINARY_PATHS = model_parse(BinaryPaths, {'queryEngine': {'darwin-arm64': '/Users/briandorantes/.cache/prisma-python/binaries/4.15.0/8fbc245156db7124f997f4cecdd8d1219e360944/node_modules/prisma/query-engine-darwin-arm64'}, 'introspectionEngine': {}, 'migrationEngine': {}, 'libqueryEngine': {}, 'prismaFmt': {}})
+BINARY_PATHS = model_parse(BinaryPaths, {'queryEngine': {'darwin-arm64': '/Users/briandorantes/.cache/prisma-python/binaries/5.4.2/ac9d7041ed77bcc8a8dbd2ab6616b39013829574/node_modules/prisma/query-engine-darwin-arm64', 'debian-openssl-3.0.x': '/Users/briandorantes/.cache/prisma-python/binaries/5.4.2/ac9d7041ed77bcc8a8dbd2ab6616b39013829574/node_modules/prisma/query-engine-debian-openssl-3.0.x'}, 'introspectionEngine': {}, 'migrationEngine': {}, 'libqueryEngine': {}, 'prismaFmt': {}})
 
 RegisteredClient = Union['Prisma', Callable[[], 'Prisma']]
 _registered_client: Optional[RegisteredClient] = None
@@ -435,6 +436,44 @@ class Prisma:
     def is_transaction(self) -> bool:
         """Returns True if the client is wrapped within a transaction"""
         return self._tx_id is not None
+
+    @overload
+    async def get_metrics(
+        self,
+        format: Literal['json'] = 'json',
+        *,
+        global_labels: dict[str, str] | None = None,
+    ) -> Metrics:
+        ...
+
+    @overload
+    async def get_metrics(
+        self,
+        format: Literal['prometheus'],
+        *,
+        global_labels: dict[str, str] | None = None,
+    ) -> str:
+        ...
+
+    async def get_metrics(
+        self,
+        format: MetricsFormat = 'json',
+        *,
+        global_labels: dict[str, str] | None = None,
+    ) -> str | Metrics:
+        """Metrics give you a detailed insight into how the Prisma Client interacts with your database.
+
+        You can retrieve metrics in either JSON or Prometheus formats.
+
+        For more details see https://www.prisma.io/docs/concepts/components/prisma-client/metrics.
+        """
+        response = await self._engine.metrics(format=format, global_labels=global_labels)
+        if format == 'prometheus':
+            # For the prometheus format we return the response as-is
+            assert isinstance(response, str)
+            return response
+
+        return model_parse(Metrics, response)
 
     # TODO: don't return Any
     async def _execute(
