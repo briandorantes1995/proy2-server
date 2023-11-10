@@ -1,0 +1,15 @@
+name: my-flask-app
+
+setup:
+  scripts:
+    - python -m venv --copies /opt/venv
+    - . /opt/venv/bin/activate
+    - pip install -r requirements.txt
+    - prisma generate
+
+build:
+  builder: railway/python
+  run: setup.py
+
+start:
+  command: python main.py
